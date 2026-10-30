@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "url": "http://sudo-playwright-mcp:8931/mcp",
+      "transport": "streamable-http"
+    }
+  }
+}

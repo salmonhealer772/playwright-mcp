@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sudo-playwright-mcp
+  namespace: default
+  labels:
+    app: sudo-playwright-mcp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sudo-playwright-mcp
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: sudo-playwright-mcp
+    spec:
+      hostNetwork: true
+      dnsPolicy: Default
+      volumes:
+        - name: log
+          emptyDir: {}
+      containers:
+        - name: playwright-mcp
+          image: mcr.microsoft.com/playwright/mcp:latest
+          imagePullPolicy: IfNotPresent
+          args:
+            - --headless
+            - --browser
+            - chromium
+            - --no-sandbox
+            - --port
+            - "8932"
+            - --host
+            - 127.0.0.1
+          ports:
+            - containerPort: 8932
+              name: mcp
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          volumeMounts:
+            - name: log
+              mountPath: /var/log/playwright-mcp
+        - name: mcp-logger
+          image: mcp-logger:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8931
+              name: logger
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8931
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8931
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          volumeMounts:
+            - name: log
+              mountPath: /var/log/playwright-mcp
